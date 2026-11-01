@@ -1,13 +1,13 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_dsp/juce_dsp.h>
+#include "ShapeCurve.h"
 
-class RectifyAudioProcessor : public juce::AudioProcessor
+class ShaperProcessor : public juce::AudioProcessor
 {
 public:
-    RectifyAudioProcessor();
-    ~RectifyAudioProcessor() override = default;
+    ShaperProcessor();
+    ~ShaperProcessor() override = default;
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
@@ -17,7 +17,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
-    const juce::String getName() const override { return "Rectify Distortion"; }
+    const juce::String getName() const override { return "Rectify Waveshaper"; }
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
@@ -32,33 +32,29 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    ShapeCurve& getCurve() noexcept { return curve; }
+
     juce::AudioProcessorValueTreeState apvts;
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
+    float shape (float x) const noexcept;
 
-    static constexpr size_t kOversamplingOrder = 2; // 2^2 = 4x
+    ShapeCurve curve;
+    std::array<float, (size_t) ShapeCurve::tableSize + 1> localTable {};
+    int localVersion = -1;
 
-    // Ponteiros diretos pros parametros (leitura thread-safe no audio thread)
-    std::atomic<float>* modeParam   = nullptr;
-    std::atomic<float>* driveParam  = nullptr;
-    std::atomic<float>* amountParam = nullptr;
-    std::atomic<float>* mixParam    = nullptr;
-    std::atomic<float>* outputParam = nullptr;
+    std::atomic<float>* preParam = nullptr;
+    std::atomic<float>* postParam = nullptr;
+    std::atomic<float>* mixParam = nullptr;
+    std::atomic<float>* dcParam = nullptr;
 
-    // Suavizacao pra evitar "cliques" ao mexer nos knobs
-    juce::SmoothedValue<float> driveGain, outputGain, amount;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> preGain, postGain;
+    juce::SmoothedValue<float> mix;
 
-    // Oversampling reduz o aliasing que a retificacao (quina aguda) gera
-    juce::dsp::Oversampling<float> oversampling { 2, kOversamplingOrder,
-        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, true };
+    float dcCoefficient = 0.997f;
+    float xPrevious[2] {};
+    float yPrevious[2] {};
 
-    // Mistura dry/wet ja compensando a latencia do oversampling
-    juce::dsp::DryWetMixer<float> mixer { 64 };
-
-    // Bloqueador de DC (a retificacao cria offset de DC)
-    float dcR = 0.997f;
-    float xPrev[2] {}, yPrev[2] {};
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RectifyAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ShaperProcessor)
 };

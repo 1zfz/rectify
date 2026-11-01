@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
-project(RectifyDistortion VERSION 1.0.0)
+project(RectifyDistortion VERSION 2.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Baixa o JUCE automaticamente (precisa de internet e git na primeira vez)
 include(FetchContent)
 FetchContent_Declare(
     JUCE
@@ -13,19 +12,23 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(JUCE)
 
 juce_add_plugin(RectifyDistortion
-    COMPANY_NAME "SeuNome"
-    PLUGIN_MANUFACTURER_CODE Demo
-    PLUGIN_CODE Rect
-    FORMATS VST3 Standalone
-    PRODUCT_NAME "Rectify Distortion"
+    COMPANY_NAME "1zfz"
+    PLUGIN_MANUFACTURER_CODE Izfz
+    PLUGIN_CODE Wshp
+    FORMATS VST3
+    PRODUCT_NAME "Rectify Waveshaper"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE)
 
 target_sources(RectifyDistortion PRIVATE
+    Source/ShapeCurve.cpp
+    Source/ShapeCurve.h
     Source/PluginProcessor.cpp
-    Source/PluginProcessor.h)
+    Source/PluginProcessor.h
+    Source/PluginEditor.cpp
+    Source/PluginEditor.h)
 
 target_compile_definitions(RectifyDistortion PUBLIC
     JUCE_WEB_BROWSER=0
@@ -35,7 +38,6 @@ target_compile_definitions(RectifyDistortion PUBLIC
 target_link_libraries(RectifyDistortion
     PRIVATE
         juce::juce_audio_utils
-        juce::juce_dsp
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
